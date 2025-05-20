@@ -178,7 +178,6 @@ export class CommentFormatter {
         for (let i = 0; i < parts.length; i++) {
             // Process HTML tags in this part
             let processed = parts[i];
-            console.log(processed);
             
             // Match opening tags, closing tags, and self-closing tags
             // processed = processed.replace(
