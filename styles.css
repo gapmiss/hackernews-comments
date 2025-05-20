@@ -39,3 +39,9 @@
 .hn-button-container button:first-child:hover {
   background-color: var(--interactive-accent-hover);
 }
+
+.hn-comments-template-vars {
+  margin:0px;
+  padding:0px;
+  font-size:var(--font-ui-small);
+}
