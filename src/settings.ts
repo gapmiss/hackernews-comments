@@ -15,8 +15,7 @@ export const DEFAULT_SETTINGS: HNCommentsSettings = {
     wrapHtmlTags: true
 };
 
-export 
-class HNCommentsSettingTab extends PluginSettingTab {
+export class HNCommentsSettingTab extends PluginSettingTab {
 	plugin: HackerNewsCommentsPlugin;
 
 	constructor(app: App, plugin: HackerNewsCommentsPlugin) {
@@ -29,10 +28,10 @@ class HNCommentsSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'HackerNews Comments Settings' });
+		// containerEl.createEl('h2', { text: 'HackerNews Comments Settings' });
 
 		new Setting(containerEl)
-			.setName('Enhanced Links')
+			.setName('Enhanced links')
 			.setDesc('Enable enhanced links for usernames and timestamps in comments')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.enhancedLinks)
@@ -71,10 +70,13 @@ class HNCommentsSettingTab extends PluginSettingTab {
 					this.plugin.settings.filenameTemplate = value;
 					await this.plugin.saveSettings();
 				}));
-				
+        
+
+        new Setting(containerEl)
+			.setName('Available template variables')
 		// Add template variables documentation
 		const templateHelp = containerEl.createEl('div', { cls: 'template-help' });
-		templateHelp.createEl('h3', { text: 'Available Template Variables' });
+		// templateHelp.createEl('h6', { text: 'Available template variables' });
 		
 		const templateVars = [
 			{ name: '{{title}}', desc: 'The HackerNews post title' },
@@ -85,10 +87,11 @@ class HNCommentsSettingTab extends PluginSettingTab {
 			{ name: '{{datetime}}', desc: 'The current date and time (YYYY-MM-DD-HH-MM-SS format)' }
 		];
 		
-		const ul = templateHelp.createEl('ul');
+		const div = templateHelp.createEl('div');
 		templateVars.forEach(v => {
-			const li = ul.createEl('li');
-			li.createEl('strong', { text: v.name });
+			const li = div.createEl('p');
+            li.style = "margin:0px;padding:0px;font-size:var(--font-ui-small);";
+			li.createEl('em', { text: v.name });
 			li.createSpan({ text: ` - ${v.desc}` });
 		});
 	}
