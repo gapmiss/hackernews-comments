@@ -7,7 +7,7 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 	settings: HNCommentsSettings;
 
 	async onload() {
-		console.log('Loading HackerNews Comments plugin');
+		// console.log('Loading HackerNews Comments plugin');
 
 		// Load settings
 		await this.loadSettings();
@@ -105,7 +105,7 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 	}
 
 	onunload() {
-		console.log('Unloading HackerNews Comments plugin');
+		// console.log('Unloading HackerNews Comments plugin');
 	}
 
 	private generateFileName(url: string, postInfo?: any): string {

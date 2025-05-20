@@ -91,7 +91,7 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 		templateVars.forEach(v => {
 			const li = div.createEl('p');
             li.style = "margin:0px;padding:0px;font-size:var(--font-ui-small);";
-			li.createEl('em', { text: v.name });
+			li.createEl('strong', { text: v.name });
 			li.createSpan({ text: ` - ${v.desc}` });
 		});
 	}
