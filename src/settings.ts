@@ -84,8 +84,9 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 								console.error(error);
 							}
 						}
-					});
-			})
+					})
+					.extraSettingsEl.setAttribute('tabindex', '0');
+			});
 
 		new Setting(containerEl)
 			.setName('Open note automatically')
@@ -123,24 +124,24 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 					.setIcon("rotate-ccw")
 					.setTooltip("Restore default template", { "placement": "left" })
 					.onClick(async () => {
-						if (confirm('Restore this template?')) {
+						if (confirm('Restore default template?')) {
 							try {
 								this.plugin.settings.filenameTemplate = DEFAULT_SETTINGS.filenameTemplate;
 								await this.plugin.saveSettings();
 								let input = activeDocument.querySelector('.hn-filename-template-setting .setting-item-control input[type="text"]') as HTMLInputElement | null;
 								input!.value = DEFAULT_SETTINGS.filenameTemplate;
-								// showNotice("Default note template restored", 3000, 'success');
 							} catch (error) {
 								console.error(error);
 							}
 						}
-					});
+					})
+					.extraSettingsEl.setAttribute('tabindex', '0');
 			})
 			.descEl.appendChild(createFragment((frag) => {
 				frag.appendChild(document.createElement("br"));
 				frag.appendChild(document.createElement("br"));
 				frag.appendText("Available template variables (click or tab/enter to copy to clipboard)");
-				
+
 				// Add template variables documentation
 				const templateHelp = containerEl.createEl('div', { cls: 'template-help' });
 				const templateVars = [
@@ -182,6 +183,17 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 				});
 			}));
 
+			let restoreButtons = containerEl.querySelectorAll(".extra-setting-button");
+			restoreButtons.forEach((element: HTMLElement) => {
+				element.addEventListener('keydown', (evt: KeyboardEvent) => {
+					const keyDown = evt.key;
+					if (keyDown === 'Enter' || (['Spacebar', ' '].indexOf(keyDown) >= 0)) {
+						evt.preventDefault();
+						console.log(evt.targetNode);
+						(evt.targetNode as HTMLElement).click();
+					}
+				});				
+			});
 
 	}
 }

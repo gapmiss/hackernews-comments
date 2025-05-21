@@ -72,6 +72,8 @@ svg.indicator {
   }
 }
 
+.hn-timestamp-format-setting .extra-setting-button:focus,
+.hn-filename-template-setting .extra-setting-button:focus,
 .setting-item-description a:focus,
 .hn-comments-template-vars .tpl:focus {
 /* .copy-icon:focus { */
