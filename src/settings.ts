@@ -1,8 +1,10 @@
-import { type App, Setting, PluginSettingTab } from 'obsidian';
+import { type App, Setting, setIcon, PluginSettingTab } from 'obsidian';
 import HackerNewsCommentsPlugin from 'src/main';
+import { copyStringToClipboard } from "./utils";
 
 export interface HNCommentsSettings {
     enhancedLinks: boolean;
+    dateFormat: string;
     openNoteAutomatically: boolean;
     filenameTemplate: string;
     wrapHtmlTags: boolean;
@@ -10,6 +12,7 @@ export interface HNCommentsSettings {
 
 export const DEFAULT_SETTINGS: HNCommentsSettings = {
     enhancedLinks: false,
+    dateFormat: "YYYY-MM-DD, hh:mm:ss",
     openNoteAutomatically: true,
     filenameTemplate: "HN - {{title}} - {{date}}",
     wrapHtmlTags: true
@@ -39,8 +42,33 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 					this.plugin.settings.enhancedLinks = value;
 					await this.plugin.saveSettings();
 				}));
-				
+
+        let descMomentFormat = document.createDocumentFragment();
+        descMomentFormat.append(
+        'Customize the date format for comment\'s timestamp. (default: YYYY-MM-DD, hh:mm:ss)',
+        descMomentFormat.createEl('br'),
+        descMomentFormat.createEl('br'),
+        "Learn about available formatting tokens in the ",
+        descMomentFormat.createEl("a", {
+            href: "https://momentjs.com/docs/#/displaying/format/",
+            text: "moment.js documentation",
+            attr: { "aria-label": "https://momentjs.com/docs/#/displaying/format/", "data-tooltip-position": "top", "tabindex": '0' }
+        }),
+        "."
+        );
+
 		new Setting(containerEl)
+			.setName('Timestamp format')
+			.setDesc(descMomentFormat)
+			.addText(text => text
+				.setPlaceholder('YYYY-MM-DD, hh:mm:ss')
+				.setValue(this.plugin.settings.dateFormat)
+				.onChange(async (value) => {
+					this.plugin.settings.dateFormat = value;
+					await this.plugin.saveSettings();
+				}));
+
+            new Setting(containerEl)
 			.setName('Open note automatically')
 			.setDesc('Automatically open newly created notes in the editor')
 			.addToggle(toggle => toggle
@@ -62,7 +90,7 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 				
 		new Setting(containerEl)
 			.setName('Note filename template')
-			.setDesc('Customize the filename for saved notes using template variables: {{title}}, {{post-id}}, {{date}}, {{source}}')
+			.setDesc('Customize the filename for saved notes using template variables. (default: HN - {{title}} - {{date})')
 			.addText(text => text
 				.setPlaceholder('HN - {{title}} - {{date}}')
 				.setValue(this.plugin.settings.filenameTemplate)
@@ -73,10 +101,9 @@ export class HNCommentsSettingTab extends PluginSettingTab {
         
 
         new Setting(containerEl)
-			.setName('Available template variables')
-		// Add template variables documentation
-		const templateHelp = containerEl.createEl('div', { cls: 'template-help' });
-		// templateHelp.createEl('h6', { text: 'Available template variables' });
+			.setName('Available template variables (click or tab/enter to copy to clipboard)')
+		    // Add template variables documentation
+		    const templateHelp = containerEl.createEl('div', { cls: 'template-help' });
 		
 		const templateVars = [
 			{ name: '{{title}}', desc: 'The HackerNews post title' },
@@ -91,7 +118,28 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 		templateVars.forEach(v => {
 			const li = div.createEl('p');
             li.addClass('hn-comments-template-vars');
-			li.createEl('strong', { text: v.name });
+            
+            let iconEl = li.createSpan({cls: 'copy-icon'});
+            
+            iconEl.setAttr("style", "margin-right: .3em;");
+            setIcon(iconEl, "copy");
+            
+            let tpl = li.createEl('code', { text: v.name, cls: "tpl", attr: {"aria-label":"Click to copy"} });
+            tpl.setAttribute('data-tooltip-position', 'top');
+            tpl.setAttribute('tabindex', '0');
+            tpl.insertAdjacentElement("afterbegin", iconEl);
+            tpl.addEventListener("click", async () => {
+                await copyStringToClipboard(v.name, v.name);
+            });
+
+            tpl.addEventListener('keydown', (evt) => {
+                const keyDown = evt.key;
+                if ( keyDown === 'Enter' || (['Spacebar', ' '].indexOf(keyDown) >= 0)) {
+                    evt.preventDefault();
+                    tpl.click();
+                }
+            });
+
 			li.createSpan({ text: ` - ${v.desc}` });
 		});
 	}

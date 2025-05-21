@@ -1,7 +1,12 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, setIcon, addIcon } from 'obsidian';
 import { HNScraper } from './scraper';
 import { CommentFormatter } from './formatter';
 import { HNCommentsSettings, DEFAULT_SETTINGS, HNCommentsSettingTab } from './settings';
+import { showNotice } from "./utils";
+
+const INDICATOR_SVG: string = `<svg height="120" viewBox="0 0 135 140" xmlns="http://www.w3.org/2000/svg"><rect y="10" width="15" height="120" rx="6"><animate attributeName="height" begin="0.5s" dur="1s" values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear" repeatCount="indefinite" /><animate attributeName="y" begin="0.5s" dur="1s" values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear" repeatCount="indefinite" /></rect><rect x="30" y="10" width="15" height="120" rx="6"><animate attributeName="height" begin="0.25s" dur="1s" values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear" repeatCount="indefinite" /><animate attributeName="y" begin="0.25s" dur="1s" values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear" repeatCount="indefinite" /></rect><rect x="60" width="15" height="140" rx="6"><animate attributeName="height" begin="0s" dur="1s" values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear" repeatCount="indefinite" /><animate attributeName="y" begin="0s" dur="1s" values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear" repeatCount="indefinite" /></rect><rect x="90" y="10" width="15" height="120" rx="6"><animate attributeName="height" begin="0.25s" dur="1s" values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear" repeatCount="indefinite" /><animate attributeName="y" begin="0.25s" dur="1s" values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear" repeatCount="indefinite" /></rect><rect x="120" y="10" width="15" height="120" rx="6"><animate attributeName="height" begin="0.5s" dur="1s" values="120;110;100;90;80;70;60;50;40;140;120" calcMode="linear" repeatCount="indefinite" /><animate attributeName="y" begin="0.5s" dur="1s" values="10;15;20;25;30;35;40;45;50;0;10" calcMode="linear" repeatCount="indefinite" /></rect></svg>`;
+
+addIcon('indicator', INDICATOR_SVG);
 
 export default class HackerNewsCommentsPlugin extends Plugin {
 	settings: HNCommentsSettings;
@@ -20,14 +25,18 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 			new HNURLModal(this.app, async (url) => {
 				try {
 					// Create a persistent notice that will stay visible until the process completes
-					const loadingNotice = new Notice('Fetching HackerNews comments...', 0);
+					// let message: string = 'Fetching HackerNews comments…'
+					const fragment = this.generateFragment("Fetching HackerNews comments…", "loading");
 					
-					const scraper = new HNScraper();
-					const postInfo = await scraper.scrapeComments(url);
+					const loadingNotice = new Notice(fragment, 0);
+
+					const scraper = new HNScraper(this);
+					const postInfo = await scraper.scrapeComments(url, loadingNotice);
 					
 					if (!postInfo.comments || postInfo.comments.length === 0) {
 						loadingNotice.hide();
-						new Notice('No comments found or unable to parse the page.');
+						// new Notice('No comments found or unable to parse the page.');
+						showNotice("Error: No comments found or unable to parse the page.", 10000, 'error');
 						return;
 					}
 					
@@ -40,7 +49,10 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 					
 					// Hide the loading notice now that we're done
 					loadingNotice.hide();
-					new Notice(`Created note: ${fileName}`);
+					
+					showNotice(`Created note: ${fileName}`, 5000, 'success');
+					
+					// new Notice(`Created note: ${fileName}`);
 					
 					// Open the note automatically if the setting is enabled
 					if (this.settings.openNoteAutomatically && file) {
@@ -48,7 +60,7 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 					}
 				} catch (error) {
 					console.error('Error processing HackerNews comments:', error);
-					new Notice(`Error: ${error.message || 'Failed to process HackerNews comments'}`);
+					showNotice(`Error: ${error.message || 'Failed to process HackerNews comments'}`, 10000, 'error');
 				}
 			}).open();
 		});
@@ -61,14 +73,17 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 				new HNURLModal(this.app, async (url) => {
 					try {
 						// Create a persistent notice that will stay visible until the process completes
-						const loadingNotice = new Notice('Fetching HackerNews comments...', 0);
+						const fragment = this.generateFragment("Fetching HackerNews comments…", "loading");
+					
+						const loadingNotice = new Notice(fragment, 0);
+						// const loadingNotice = new Notice('Fetching HackerNews comments...', 0);
 						
-						const scraper = new HNScraper();
-						const postInfo = await scraper.scrapeComments(url);
+						const scraper = new HNScraper(this);
+						const postInfo = await scraper.scrapeComments(url, loadingNotice);
 						
 						if (!postInfo.comments || postInfo.comments.length === 0) {
 							loadingNotice.hide();
-							new Notice('No comments found or unable to parse the page.');
+							showNotice("Error: No comments found or unable to parse the page.", 10000, 'error');
 							return;
 						}
 						
@@ -81,7 +96,8 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 						
 						// Hide the loading notice now that we're done
 						loadingNotice.hide();
-						new Notice(`Created note: ${fileName}`);
+						// new Notice(`Created note: ${fileName}`);
+						showNotice(`Created note: ${fileName}`, 5000, 'success');
 						
 						// Open the note automatically if the setting is enabled
 						if (this.settings.openNoteAutomatically && file) {
@@ -89,12 +105,80 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 						}
 					} catch (error) {
 						console.error('Error processing HackerNews comments:', error);
-						new Notice(`Error: ${error.message || 'Failed to process HackerNews comments'}`);
+						// new Notice(`Error: ${error.message || 'Failed to process HackerNews comments'}`);
+						showNotice(`Error: ${error.message || 'Failed to process HackerNews comments'}`, 10000, 'error');
 					}
 				}).open();
 			}
 		});
 	}
+
+	generateFragment(message: string, type: string|undefined): DocumentFragment {
+
+		const fragment = document.createDocumentFragment();
+
+		let wrapper = fragment.createDiv({
+			attr: {
+				style: `display: flex; gap: .75em;`,
+			}
+		});
+
+		if (type === 'error') {
+			const header = wrapper.createDiv({
+				attr: {
+					style: `color: var(--color-red);`,
+				},
+			});
+			setIcon(header, 'alert-triangle');
+		}
+
+		if (type === 'warning') {
+			const header = wrapper.createDiv({
+				attr: {
+					style: `color: var(--color-yellow);`,
+				},
+			});
+			setIcon(header, 'alert-triangle');
+		}
+
+		if (type === 'success') {
+			const header = wrapper.createDiv({
+				attr: {
+					style: `color: var(--color-green);`,
+				},
+			});
+			setIcon(header, 'check-circle');
+		}
+
+		if (type === 'info') {
+			const header = wrapper.createDiv({
+				attr: {
+					style: `color: var(--color-blue);`,
+				},
+			});
+			setIcon(header, 'info');
+		}
+
+		if (type === 'loading') {
+			const header = wrapper.createDiv({
+				attr: {
+					cls: "indicator"
+				}
+			});
+			setIcon(header, 'indicator');
+		}
+
+		wrapper.createDiv({
+			text: message,
+			attr: {
+			style: ``,
+			},
+		});
+
+		return fragment;
+
+	}
+
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());

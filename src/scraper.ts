@@ -1,3 +1,7 @@
+import { type App, moment, Notice } from "obsidian";
+import HackerNewsCommentsPlugin from "./main";
+import { DEFAULT_SETTINGS } from "./settings";
+
 export interface HNComment {
     id: string;
     author: string;
@@ -18,6 +22,13 @@ export interface HNPostInfo {
 }
 
 export class HNScraper {
+
+    plugin: HackerNewsCommentsPlugin;
+
+    constructor(plugin: HackerNewsCommentsPlugin) {
+        this.plugin = plugin;
+    }
+
     // List of CORS proxies to try
     private corsProxies = [
         'https://corsproxy.io/?',
@@ -25,10 +36,11 @@ export class HNScraper {
         'https://cors-anywhere.herokuapp.com/'
     ];
 
-    async scrapeComments(url: string): Promise<HNPostInfo> {
+    async scrapeComments(url: string, messageEl: Notice): Promise<HNPostInfo> {
         try {
             // Validate URL
             if (!this.isValidHNUrl(url)) {
+                messageEl.hide();
                 throw new Error('Invalid HackerNews URL. Please provide a URL in the format: https://news.ycombinator.com/item?id=XXXXX');
             }
 
@@ -58,6 +70,7 @@ export class HNScraper {
                         };
                     }
                 } catch (apiError) {
+                    messageEl.hide();
                     console.log('HackerNews API method failed:', apiError);
                 }
             }
@@ -164,11 +177,15 @@ export class HNScraper {
                 // Skip deleted or dead comments
                 if (!commentData || commentData.deleted || commentData.dead) continue;
                 
+                const date = moment.unix(commentData.time);
+
                 const comment: HNComment = {
                     id: `comment_${commentId}`,
                     author: commentData.by || 'Anonymous',
                     text: commentData.text || '',
-                    time: this.formatTime(commentData.time),
+                    // time: this.formatTime(commentData.time),
+                    // time: date.format("YYYY-MM-DD, hh:mm:ss"),
+                    time: date.format(this.plugin.settings.dateFormat ? this.plugin.settings.dateFormat : DEFAULT_SETTINGS.dateFormat),
                     level,
                     children: [],
                     parentId

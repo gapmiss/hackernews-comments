@@ -45,3 +45,31 @@
   padding:0px;
   font-size:var(--font-ui-small);
 }
+
+svg.lucide-copy {
+  width: 14px;
+  height: 14px;
+  color: var(--text-accent);
+  cursor: default;
+}
+
+.hn-comments-template-vars .tpl {
+  color: var(--text-accent) !important;
+}
+
+svg.indicator {
+  fill: var(--interactive-accent);
+}
+
+.setting-item-control:has(input[type="text"]) {
+  /* width: 75%; */
+  & input[type="text"] {
+    min-width: 33ch;
+  }
+}
+
+.hn-comments-template-vars .tpl:focus {
+/* .copy-icon:focus { */
+  box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
+  border-radius: var(--size-2-2);
+}
