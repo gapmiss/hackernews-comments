@@ -1,6 +1,6 @@
 {
 	"name": "hackernews-comments",
-	"version": "1.6.3",
+	"version": "1.6.4",
 	"description": "An Obsidian.md plugin that scrapes comments from HackerNews posts and creates a markdown note with threaded comments.",
 	"main": "main.js",
 	"scripts": {
