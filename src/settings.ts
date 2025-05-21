@@ -183,13 +183,12 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 				});
 			}));
 
-			let restoreButtons = containerEl.querySelectorAll(".extra-setting-button");
+			let restoreButtons: NodeListOf<HTMLElement> = containerEl.querySelectorAll(".extra-setting-button");
 			restoreButtons.forEach((element: HTMLElement) => {
 				element.addEventListener('keydown', (evt: KeyboardEvent) => {
 					const keyDown = evt.key;
 					if (keyDown === 'Enter' || (['Spacebar', ' '].indexOf(keyDown) >= 0)) {
 						evt.preventDefault();
-						console.log(evt.targetNode);
 						(evt.targetNode as HTMLElement).click();
 					}
 				});				
