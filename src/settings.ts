@@ -31,8 +31,6 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		// containerEl.createEl('h2', { text: 'HackerNews Comments Settings' });
-
 		new Setting(containerEl)
 			.setName('Enhanced links')
 			.setDesc('Enable enhanced links for usernames and timestamps in comments')
@@ -79,7 +77,6 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 								await this.plugin.saveSettings();
 								let input = activeDocument.querySelector('.hn-timestamp-format-setting .setting-item-control input[type="text"]') as HTMLInputElement | null;
 								input!.value = DEFAULT_SETTINGS.dateFormat;
-								// showNotice("Default note template restored", 3000, 'success');
 							} catch (error) {
 								console.error(error);
 							}

@@ -43,11 +43,8 @@
 .hn-comments-template-vars {
   margin:0px;
   padding:0px;
-  /* font-size:var(--font-ui-small); */
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
-  /* padding-top: var(--size-4-1); */
-  /* line-height: var(--line-height-tight); */
 }
 
 svg.lucide-copy {
@@ -66,7 +63,6 @@ svg.indicator {
 }
 
 .setting-item-control:has(input[type="text"]) {
-  /* width: 75%; */
   & input[type="text"] {
     min-width: 33ch;
   }
@@ -76,7 +72,6 @@ svg.indicator {
 .hn-filename-template-setting .extra-setting-button:focus,
 .setting-item-description a:focus,
 .hn-comments-template-vars .tpl:focus {
-/* .copy-icon:focus { */
   box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
   border-radius: var(--size-2-2);
 }
