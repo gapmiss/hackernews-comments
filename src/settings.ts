@@ -142,10 +142,10 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 				// Add template variables documentation
 				const templateHelp = containerEl.createEl('div', { cls: 'template-help' });
 				const templateVars = [
-					{ name: '{{title}}', desc: 'The HackerNews post title' },
-					{ name: '{{post-id}}', desc: 'The HackerNews post ID' },
+					{ name: '{{title}}', desc: 'The Hacker News post title' },
+					{ name: '{{post-id}}', desc: 'The Hacker News post ID' },
 					{ name: '{{date}}', desc: 'The current date (YYYY-MM-DD format)' },
-					{ name: '{{source}}', desc: 'The source URL or "HackerNews"' },
+					{ name: '{{source}}', desc: 'The source URL or "Hacker News"' },
 					{ name: '{{time}}', desc: 'The current time (HH-MM-SS format)' },
 					{ name: '{{datetime}}', desc: 'The current date and time (YYYY-MM-DD-HH-MM-SS format)' }
 				];
@@ -186,9 +186,9 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 					const keyDown = evt.key;
 					if (keyDown === 'Enter' || (['Spacebar', ' '].indexOf(keyDown) >= 0)) {
 						evt.preventDefault();
-						(evt.targetNode as HTMLElement).click();
+						(evt.target as HTMLElement).click();
 					}
-				});				
+				});
 			});
 
 	}

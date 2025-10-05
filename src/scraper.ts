@@ -1,4 +1,4 @@
-import { type App, moment, Notice } from "obsidian";
+import { type App, moment, Notice, requestUrl } from "obsidian";
 import HackerNewsCommentsPlugin from "./main";
 import { DEFAULT_SETTINGS } from "./settings";
 
@@ -29,118 +29,75 @@ export class HNScraper {
         this.plugin = plugin;
     }
 
-    // List of CORS proxies to try
-    private corsProxies = [
-        'https://corsproxy.io/?',
-        'https://api.allorigins.win/raw?url=',
-        'https://cors-anywhere.herokuapp.com/'
-    ];
-
     async scrapeComments(url: string, messageEl: Notice): Promise<HNPostInfo> {
         try {
             // Validate URL
             if (!this.isValidHNUrl(url)) {
                 messageEl.hide();
-                throw new Error('Invalid HackerNews URL. Please provide a URL in the format: https://news.ycombinator.com/item?id=XXXXX');
+                throw new Error('Invalid Hacker News URL. Please provide a URL in the format: https://news.ycombinator.com/item?id=XXXXX');
             }
 
             // Extract the item ID from the URL
             const match = url.match(/item\?id=(\d+)/);
             const itemId = match ? match[1] : null;
-            
-            let originalUrl: string | undefined;
-            let comments: HNComment[] = [];
-            
-            if (itemId) {
-                // First try using the HackerNews API which doesn't have CORS restrictions
-                try {
-                    const apiResult = await this.fetchWithHackerNewsAPI(itemId);
-                    comments = apiResult.comments;
-                    originalUrl = apiResult.originalUrl;
-                    const title = apiResult.title;
-                    
-                    if (comments.length > 0) {
-                        return {
-                            comments,
-                            originalUrl,
-                            postId: itemId,
-                            commentCount: this.countTotalComments(comments),
-                            scrapedDate: new Date().toISOString(),
-                            title
-                        };
-                    }
-                } catch (apiError) {
-                    messageEl.hide();
-                    console.log('HackerNews API method failed:', apiError);
-                }
+
+            if (!itemId) {
+                throw new Error('Could not extract item ID from URL');
             }
 
-            // If API method failed, try other methods
-            let html = '';
-            let success = false;
-
-            // Try using Node.js capabilities if available in Obsidian
+            // Try using the Hacker News API first (preferred method)
             try {
-                html = await this.fetchWithNodeJS(url);
-                success = true;
-            } catch (nodeError) {
-                console.log('Node.js fetch method failed, trying CORS proxies:', nodeError);
-            }
+                const apiResult = await this.fetchWithHackerNewsAPI(itemId);
 
-            // If Node.js method failed, try CORS proxies
-            if (!success) {
-                for (const proxy of this.corsProxies) {
-                    try {
-                        html = await this.fetchWithCorsProxy(proxy, url);
-                        success = true;
-                        break;
-                    } catch (proxyError) {
-                        console.log(`CORS proxy ${proxy} failed:`, proxyError);
-                    }
+                if (apiResult.comments.length > 0) {
+                    return {
+                        comments: apiResult.comments,
+                        originalUrl: apiResult.originalUrl,
+                        postId: itemId,
+                        commentCount: this.countTotalComments(apiResult.comments),
+                        scrapedDate: new Date().toISOString(),
+                        title: apiResult.title
+                    };
                 }
+            } catch (apiError) {
+                console.log('Hacker News API method failed, falling back to HTML scraping:', apiError);
             }
 
-            // If all methods failed, try with no-cors mode as a last resort
-            if (!success) {
-                try {
-                    html = await this.fetchWithNoCors(url);
-                    success = true;
-                } catch (noCorsError) {
-                    console.log('No-CORS mode failed:', noCorsError);
-                }
-            }
+            // Fallback: Fetch and parse HTML directly using Obsidian's requestUrl
+            try {
+                const response = await requestUrl(url);
+                const html = response.text;
 
-            if (!success || !html) {
-                throw new Error('Failed to fetch HackerNews page using all available methods');
+                const parseResult = this.parseComments(html);
+
+                return {
+                    comments: parseResult.comments,
+                    originalUrl: parseResult.originalUrl,
+                    postId: itemId,
+                    commentCount: this.countTotalComments(parseResult.comments),
+                    scrapedDate: new Date().toISOString(),
+                    title: parseResult.title
+                };
+            } catch (htmlError) {
+                messageEl.hide();
+                throw new Error(`Failed to fetch Hacker News page: ${htmlError.message}`);
             }
-            
-            // Parse the HTML to extract comments and original URL
-            const parseResult = this.parseComments(html);
-            
-            return {
-                comments: parseResult.comments,
-                originalUrl: parseResult.originalUrl,
-                postId: itemId || 'unknown',
-                commentCount: this.countTotalComments(parseResult.comments),
-                scrapedDate: new Date().toISOString(),
-                title: parseResult.title
-            };
         } catch (error) {
-            console.error('Error scraping HackerNews comments:', error);
+            console.error('Error scraping Hacker News comments:', error);
             throw error;
         }
     }
-    
+
     private async fetchWithHackerNewsAPI(itemId: string): Promise<{comments: HNComment[], originalUrl?: string, title?: string}> {
-        // HackerNews API doesn't have CORS restrictions
+        // Hacker News API doesn't have CORS restrictions
         const itemUrl = `https://hacker-news.firebaseio.com/v0/item/${itemId}.json`;
-        const response = await fetch(itemUrl);
-        
-        if (!response.ok) {
-            throw new Error(`HackerNews API request failed with status: ${response.status}`);
+        const response = await requestUrl(itemUrl);
+
+        if (response.status !== 200) {
+            throw new Error(`Hacker News API request failed with status: ${response.status}`);
         }
-        
-        const item = await response.json();
+
+        const item = response.json;
         
         // Extract the original URL if available
         const originalUrl = item.url || undefined;
@@ -168,11 +125,11 @@ export class HNScraper {
         for (const commentId of commentIds) {
             try {
                 const commentUrl = `https://hacker-news.firebaseio.com/v0/item/${commentId}.json`;
-                const response = await fetch(commentUrl);
-                
-                if (!response.ok) continue;
-                
-                const commentData = await response.json();
+                const response = await requestUrl(commentUrl);
+
+                if (response.status !== 200) continue;
+
+                const commentData = response.json;
                 
                 // Skip deleted or dead comments
                 if (!commentData || commentData.deleted || commentData.dead) continue;
@@ -210,12 +167,12 @@ export class HNScraper {
     
     private formatTime(timestamp: number): string {
         if (!timestamp) return '';
-        
+
         const date = new Date(timestamp * 1000);
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        
+
         if (diffHours < 24) {
             return `${diffHours} hours ago`;
         } else {
@@ -224,66 +181,8 @@ export class HNScraper {
         }
     }
 
-    private async fetchWithNodeJS(url: string): Promise<string> {
-        // Try to use Node.js capabilities if available in Obsidian
-        // This uses the Electron environment's Node.js capabilities
-        try {
-            // @ts-ignore - Using require dynamically
-            const https = (window as any).require('https');
-            
-            return new Promise((resolve, reject) => {
-                https.get(url, (res: any) => {
-                    if (res.statusCode !== 200) {
-                        reject(new Error(`Request failed with status code ${res.statusCode}`));
-                        return;
-                    }
-
-                    let data = '';
-                    res.on('data', (chunk: any) => {
-                        data += chunk;
-                    });
-                    
-                    res.on('end', () => {
-                        resolve(data);
-                    });
-                }).on('error', (err: any) => {
-                    reject(err);
-                });
-            });
-        } catch (error) {
-            throw new Error('Node.js capabilities not available: ' + error.message);
-        }
-    }
-
-    private async fetchWithCorsProxy(proxyUrl: string, targetUrl: string): Promise<string> {
-        const response = await fetch(`${proxyUrl}${encodeURIComponent(targetUrl)}`);
-        if (!response.ok) {
-            throw new Error(`Proxy request failed with status: ${response.status}`);
-        }
-        return await response.text();
-    }
-
-    private async fetchWithNoCors(url: string): Promise<string> {
-        // This is a last resort and may not work in all cases
-        const response = await fetch(url, { 
-            mode: 'no-cors',
-            cache: 'no-cache',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-        
-        // Note: With no-cors, we can't actually read the response content in most cases
-        // This is mostly here as a fallback, but it may not work as expected
-        if (response.type === 'opaque') {
-            throw new Error('Cannot read response content in no-cors mode');
-        }
-        
-        return await response.text();
-    }
-
     private isValidHNUrl(url: string): boolean {
-        // Check if the URL is a valid HackerNews item URL
+        // Check if the URL is a valid Hacker News item URL
         const regex = /^https?:\/\/news\.ycombinator\.com\/item\?id=\d+/;
         return regex.test(url);
     }

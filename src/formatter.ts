@@ -38,7 +38,7 @@ export class CommentFormatter {
         if (title) {
             markdown += `# ${title}\n\n`;
         } else {
-            markdown += `# HackerNews Comments\n\n`;
+            markdown += `# Hacker News Comments\n\n`;
         }
         
         // Add comments section
@@ -101,46 +101,111 @@ export class CommentFormatter {
     }
     
     private escapeFrontmatterString(text: string): string {
-        // Escape quotes in frontmatter strings
-        return text.replace(/"/g, '\\"');
+        // Security: Properly escape YAML frontmatter strings
+        // Replace quotes and backslashes, and handle special YAML characters
+        return text
+            .replace(/\\/g, '\\\\')  // Escape backslashes first
+            .replace(/"/g, '\\"')     // Escape quotes
+            .replace(/\n/g, '\\n')    // Escape newlines
+            .replace(/\r/g, '\\r')    // Escape carriage returns
+            .replace(/\t/g, '\\t');   // Escape tabs
     }
     
     private formatCommentText(html: string): string {
-        // Convert HTML to markdown-friendly format
-        // This is a simple implementation - a more robust solution would use a proper HTML-to-Markdown converter
-        
-        // Replace <p> tags with newlines
-        let text = html.replace(/<p>/g, '\n\n').replace(/<\/p>/g, '');
-        
-        // Replace <a> tags with markdown links
-        text = text.replace(/<a\s+href="([^"]+)"[^>]*>([^<]+)<\/a>/g, '[$2]($1)');
-        
-        // Replace <pre> tags
-        text = text.replace(/<pre><code>([^<]+)<\/code><\/pre>/g, '```\n$1\n```');
-        
-        // Replace <code> tags
-        text = text.replace(/<code>([^<]+)<\/code>/g, '`$1`');
-        
-        // Replace <i> tags
-        text = text.replace(/<i>([^<]+)<\/i>/g, '*$1*');
-        
-        // Replace <b> tags
-        text = text.replace(/<b>([^<]+)<\/b>/g, '**$1**');
-        
+        // Security: Use DOMParser for safer HTML processing
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // Convert DOM to markdown safely by walking the tree
+        let text = this.domToMarkdown(doc.body);
+
         // Wrap HTML tags in backticks if the setting is enabled
         if (this.settings.wrapHtmlTags) {
             text = this.wrapHtmlTagsInBackticks(text);
         }
-        
-        // Replace common HTML entities
-        text = text.replace(/&lt;/g, '<')
+
+        // Replace common HTML entities (defense in depth)
+        text = this.decodeHtmlEntities(text);
+
+        return text.trim();
+    }
+
+    private domToMarkdown(node: Node): string {
+        let result = '';
+
+        node.childNodes.forEach(child => {
+            if (child.nodeType === Node.TEXT_NODE) {
+                result += child.textContent || '';
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                const element = child as HTMLElement;
+                const tagName = element.tagName.toLowerCase();
+
+                switch (tagName) {
+                    case 'p':
+                        result += '\n\n' + this.domToMarkdown(element);
+                        break;
+                    case 'a':
+                        const href = element.getAttribute('href') || '';
+                        const linkText = element.textContent || '';
+                        // Security: Validate URL scheme to prevent javascript: and data: URLs
+                        if (this.isSafeUrl(href)) {
+                            result += `[${linkText}](${href})`;
+                        } else {
+                            result += linkText; // Strip unsafe links
+                        }
+                        break;
+                    case 'pre':
+                        const codeContent = element.textContent || '';
+                        result += '```\n' + codeContent + '\n```';
+                        break;
+                    case 'code':
+                        // Check if it's inside a <pre> tag to avoid double wrapping
+                        if (element.parentElement?.tagName.toLowerCase() !== 'pre') {
+                            result += '`' + (element.textContent || '') + '`';
+                        } else {
+                            result += element.textContent || '';
+                        }
+                        break;
+                    case 'i':
+                    case 'em':
+                        result += '*' + this.domToMarkdown(element) + '*';
+                        break;
+                    case 'b':
+                    case 'strong':
+                        result += '**' + this.domToMarkdown(element) + '**';
+                        break;
+                    case 'br':
+                        result += '\n';
+                        break;
+                    default:
+                        // For any other tags, just extract the text content
+                        result += this.domToMarkdown(element);
+                }
+            }
+        });
+
+        return result;
+    }
+
+    private isSafeUrl(url: string): boolean {
+        // Security: Only allow http, https, and relative URLs
+        if (!url) return false;
+        const trimmed = url.trim().toLowerCase();
+        return trimmed.startsWith('http://') ||
+               trimmed.startsWith('https://') ||
+               trimmed.startsWith('/') ||
+               trimmed.startsWith('#') ||
+               (!trimmed.includes(':') && !trimmed.startsWith('//'));
+    }
+
+    private decodeHtmlEntities(text: string): string {
+        return text.replace(/&lt;/g, '<')
                    .replace(/&gt;/g, '>')
                    .replace(/&amp;/g, '&')
                    .replace(/&quot;/g, '"')
                    .replace(/&#x27;/g, "'")
-                   .replace(/&#x2F;/g, '/');
-        
-        return text.trim();
+                   .replace(/&#x2F;/g, '/')
+                   .replace(/&#39;/g, "'");
     }
     
     private wrapHtmlTagsInBackticks(text: string): string {

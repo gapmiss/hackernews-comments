@@ -1,8 +1,8 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, setIcon, addIcon } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, addIcon } from 'obsidian';
 import { HNScraper } from './scraper';
 import { CommentFormatter } from './formatter';
 import { HNCommentsSettings, DEFAULT_SETTINGS, HNCommentsSettingTab } from './settings';
-import { INDICATOR_SVG, showNotice } from "./utils";
+import { INDICATOR_SVG, showNotice, generateNoticeFragment } from "./utils";
 
 addIcon('indicator', INDICATOR_SVG);
 
@@ -10,7 +10,7 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 	settings: HNCommentsSettings;
 
 	async onload() {
-		// console.log('Loading HackerNews Comments plugin');
+		// console.log('Loading Hacker News Comments plugin');
 
 		// Load settings
 		await this.loadSettings();
@@ -19,13 +19,12 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 		this.addSettingTab(new HNCommentsSettingTab(this.app, this));
 
 		// Add a ribbon icon
-		this.addRibbonIcon('message-square', 'HackerNews Comments', () => {
+		this.addRibbonIcon('message-square', 'Hacker News Comments', () => {
 			new HNURLModal(this.app, async (url) => {
 				try {
 					// Create a persistent notice that will stay visible until the process completes
-					// let message: string = 'Fetching HackerNews comments…'
-					const fragment = this.generateFragment("Fetching HackerNews comments…", "loading");
-					
+					const fragment = generateNoticeFragment("Fetching Hacker News comments…", "loading");
+
 					const loadingNotice = new Notice(fragment, 0);
 
 					const scraper = new HNScraper(this);
@@ -57,8 +56,8 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 						this.app.workspace.getLeaf().openFile(file);
 					}
 				} catch (error) {
-					console.error('Error processing HackerNews comments:', error);
-					showNotice(`Error: ${error.message || 'Failed to process HackerNews comments'}`, 10000, 'error');
+					console.error('Error processing Hacker News comments:', error);
+					showNotice(`Error: ${error.message || 'Failed to process Hacker News comments'}`, 10000, 'error');
 				}
 			}).open();
 		});
@@ -66,15 +65,14 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 		// Add a command
 		this.addCommand({
 			id: 'open-hackernews-comments-modal',
-			name: 'Fetch HackerNews Comments',
+			name: 'Fetch Hacker News Comments',
 			callback: () => {
 				new HNURLModal(this.app, async (url) => {
 					try {
 						// Create a persistent notice that will stay visible until the process completes
-						const fragment = this.generateFragment("Fetching HackerNews comments…", "loading");
-					
+						const fragment = generateNoticeFragment("Fetching Hacker News comments…", "loading");
+
 						const loadingNotice = new Notice(fragment, 0);
-						// const loadingNotice = new Notice('Fetching HackerNews comments...', 0);
 						
 						const scraper = new HNScraper(this);
 						const postInfo = await scraper.scrapeComments(url, loadingNotice);
@@ -102,81 +100,14 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 							this.app.workspace.getLeaf().openFile(file);
 						}
 					} catch (error) {
-						console.error('Error processing HackerNews comments:', error);
-						// new Notice(`Error: ${error.message || 'Failed to process HackerNews comments'}`);
-						showNotice(`Error: ${error.message || 'Failed to process HackerNews comments'}`, 10000, 'error');
+						console.error('Error processing Hacker News comments:', error);
+						// new Notice(`Error: ${error.message || 'Failed to process Hacker News comments'}`);
+						showNotice(`Error: ${error.message || 'Failed to process Hacker News comments'}`, 10000, 'error');
 					}
 				}).open();
 			}
 		});
 	}
-
-	generateFragment(message: string, type: string|undefined): DocumentFragment {
-
-		const fragment = document.createDocumentFragment();
-
-		let wrapper = fragment.createDiv({
-			attr: {
-				style: `display: flex; gap: .75em;`,
-			}
-		});
-
-		if (type === 'error') {
-			const header = wrapper.createDiv({
-				attr: {
-					style: `color: var(--color-red);`,
-				},
-			});
-			setIcon(header, 'alert-triangle');
-		}
-
-		if (type === 'warning') {
-			const header = wrapper.createDiv({
-				attr: {
-					style: `color: var(--color-yellow);`,
-				},
-			});
-			setIcon(header, 'alert-triangle');
-		}
-
-		if (type === 'success') {
-			const header = wrapper.createDiv({
-				attr: {
-					style: `color: var(--color-green);`,
-				},
-			});
-			setIcon(header, 'check-circle');
-		}
-
-		if (type === 'info') {
-			const header = wrapper.createDiv({
-				attr: {
-					style: `color: var(--color-blue);`,
-				},
-			});
-			setIcon(header, 'info');
-		}
-
-		if (type === 'loading') {
-			const header = wrapper.createDiv({
-				attr: {
-					cls: "indicator"
-				}
-			});
-			setIcon(header, 'indicator');
-		}
-
-		wrapper.createDiv({
-			text: message,
-			attr: {
-			style: ``,
-			},
-		});
-
-		return fragment;
-
-	}
-
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -187,56 +118,68 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 	}
 
 	onunload() {
-		// console.log('Unloading HackerNews Comments plugin');
+		// console.log('Unloading Hacker News Comments plugin');
 	}
 
 	private generateFileName(url: string, postInfo?: any): string {
 		// Extract the story ID from the URL
 		const match = url.match(/\/item\?id=(\d+)/);
 		const postId = match ? match[1] : 'unknown';
-		
+
 		// Get current date and time
 		const now = new Date();
 		const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
 		const time = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
 		const datetime = `${date}-${time}`;
-		
+
 		// Get title from postInfo if available
 		const title = postInfo?.title || 'Untitled';
-		
-		// Get source (either the original URL or "HackerNews")
-		const source = postInfo?.originalUrl ? new URL(postInfo.originalUrl).hostname : 'HackerNews';
-		
+
+		// Security: Safely extract and sanitize hostname
+		let source = 'Hacker News';
+		if (postInfo?.originalUrl) {
+			try {
+				const hostname = new URL(postInfo.originalUrl).hostname;
+				source = this.sanitizeFilename(hostname);
+			} catch (e) {
+				// Invalid URL, fallback to Hacker News
+				source = 'Hacker News';
+			}
+		}
+
 		// Get the template from settings
 		let template = this.settings.filenameTemplate || 'HN - {{title}} - {{date}}';
-		
-		// Replace template variables
+
+		// Replace template variables (sanitize all user input)
 		template = template
 			.replace(/{{title}}/g, this.sanitizeFilename(title))
-			.replace(/{{post-id}}/g, postId)
+			.replace(/{{post-id}}/g, this.sanitizeFilename(postId))
 			.replace(/{{date}}/g, date)
 			.replace(/{{time}}/g, time)
 			.replace(/{{datetime}}/g, datetime)
-			.replace(/{{source}}/g, this.sanitizeFilename(source));
-		
+			.replace(/{{source}}/g, source);
+
 		// Ensure the filename is valid
 		let filename = this.sanitizeFilename(template);
-		
+
 		// Add .md extension if not present
 		if (!filename.endsWith('.md')) {
 			filename += '.md';
 		}
-		
+
 		return filename;
 	}
-	
+
 	private sanitizeFilename(input: string): string {
-		// Replace invalid filename characters with safe alternatives
+		// Security: Comprehensive filename sanitization
 		return input
-			.replace(/[\\/:*?"<>|]/g, '-') // Replace Windows invalid filename chars
-			.replace(/\s+/g, ' ')          // Replace multiple spaces with single space
-			.replace(/^\s+|\s+$/g, '')     // Trim leading/trailing spaces
-			.substring(0, 200);            // Limit length to avoid too long filenames
+			.replace(/[\\/:*?"<>|]/g, '-')  // Replace Windows invalid chars
+			.replace(/\.\./g, '--')          // Replace parent directory references
+			.replace(/^\.+/, '')             // Remove leading dots
+			.replace(/\s+/g, ' ')            // Replace multiple spaces
+			.replace(/^\s+|\s+$/g, '')       // Trim whitespace
+			.replace(/^-+|-+$/g, '')         // Remove leading/trailing hyphens
+			.substring(0, 200);              // Limit length
 	}
 
 	private async createNote(fileName: string, content: string): Promise<TFile | null> {
@@ -268,8 +211,8 @@ class HNURLModal extends Modal {
 
 	onOpen() {
 		const { contentEl } = this;
-		
-		contentEl.createEl('h2', { text: 'Enter HackerNews URL' });
+
+		contentEl.createEl('h2', { text: 'Enter Hacker News URL' });
 		
 		// Create input field
 		const inputContainer = contentEl.createDiv({ cls: 'hn-url-input-container' });
@@ -296,7 +239,7 @@ class HNURLModal extends Modal {
 		const submitButton = buttonContainer.createEl('button', { text: 'Fetch Comments' });
 		submitButton.addEventListener('click', () => {
 			if (!this.validateURL(this.url)) {
-				new Notice('Please enter a valid HackerNews URL');
+				new Notice('Please enter a valid Hacker News URL');
 				return;
 			}
 			this.close();
@@ -321,9 +264,9 @@ class HNURLModal extends Modal {
 	}
 	
 	private validateURL(url: string): boolean {
-		// Basic validation to ensure it's a HackerNews URL
-		return url.trim() !== '' && 
-			(url.startsWith('https://news.ycombinator.com/') || 
+		// Basic validation to ensure it's a Hacker News URL
+		return url.trim() !== '' &&
+			(url.startsWith('https://news.ycombinator.com/') ||
 			 url.startsWith('http://news.ycombinator.com/'));
 	}
 }
