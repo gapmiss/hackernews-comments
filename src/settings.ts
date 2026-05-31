@@ -1,6 +1,5 @@
 import { type App, Setting, PluginSettingTab } from 'obsidian';
 import HackerNewsCommentsPlugin from 'src/main';
-import { showNotice } from "./utils";
 
 export interface HNCommentsSettings {
 	enhancedLinks: boolean;
@@ -41,54 +40,27 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		const descMomentFormat = activeDocument.createDocumentFragment();
-		descMomentFormat.append(
-			'Customize the date format for comment\'s timestamp. (default: YYYY-MM-DD, hh:mm:ss)',
-			descMomentFormat.createEl('br'),
-			descMomentFormat.createEl('br'),
-			"Learn about available formatting tokens in the ",
-			descMomentFormat.createEl("a", {
-				href: "https://momentjs.com/docs/#/displaying/format/",
-				text: "moment.js documentation",
-				attr: { "aria-label": "https://momentjs.com/docs/#/displaying/format/", "data-tooltip-position": "top", "tabindex": '0' }
-			}),
-			"."
-		);
-
 		new Setting(containerEl)
 			.setName('Timestamp format')
-			.setDesc(descMomentFormat)
-			.setClass("hn-timestamp-format-setting")
+			.setDesc(createFragment((frag) => {
+				frag.appendText("Customize the date format for comment's timestamp. (default: YYYY-MM-DD, hh:mm:ss)");
+				frag.createEl('br');
+				frag.createEl('br');
+				frag.appendText("Learn about available formatting tokens in the ");
+				frag.createEl("a", {
+					href: "https://momentjs.com/docs/#/displaying/format/",
+					text: "moment.js documentation",
+					attr: { "aria-label": "https://momentjs.com/docs/#/displaying/format/", "data-tooltip-position": "top", "tabindex": "0" }
+				});
+				frag.appendText(".");
+			}))
 			.addText(text => text
 				.setPlaceholder('YYYY-MM-DD, hh:mm:ss')
 				.setValue(this.plugin.settings.dateFormat)
 				.onChange(async (value) => {
 					this.plugin.settings.dateFormat = value;
 					await this.plugin.saveSettings();
-				}))
-			.addExtraButton((component) => {
-				component
-					.setIcon("rotate-ccw")
-					.setTooltip("Restore default format", { "placement": "left" })
-					.onClick(() => {
-						// eslint-disable-next-line no-alert
-						if (confirm('Restore default format?')) {
-							void (async () => {
-								try {
-									this.plugin.settings.dateFormat = DEFAULT_SETTINGS.dateFormat;
-									await this.plugin.saveSettings();
-									const input = activeDocument.querySelector<HTMLInputElement>('.hn-timestamp-format-setting .setting-item-control input[type="text"]');
-									if (input) input.value = DEFAULT_SETTINGS.dateFormat;
-								} catch (error) {
-									console.error('Failed to restore default format:', error);
-									showNotice('Failed to restore default format', 4000, 'error');
-								}
-							})();
-						}
-					});
-				component.extraSettingsEl.setAttribute('tabindex', '0');
-				component.extraSettingsEl.setAttribute('aria-label', 'Restore default format');
-			});
+				}));
 
 		new Setting(containerEl)
 			.setName('Open note automatically')
@@ -110,73 +82,36 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
+		const filenameSetting = new Setting(containerEl)
 			.setName('Note filename template')
-			.setDesc('Customize the filename for saved notes using template variables. (default: HN - {{title}} - {{date})')
-			.setClass("hn-filename-template-setting")
+			.setDesc('Customize the filename for saved notes using template variables. (default: HN - {{title}} - {{date}})')
 			.addText(text => text
 				.setPlaceholder('HN - {{title}} - {{date}}')
 				.setValue(this.plugin.settings.filenameTemplate)
 				.onChange(async (value) => {
 					this.plugin.settings.filenameTemplate = value;
 					await this.plugin.saveSettings();
-				}))
-			.addExtraButton((component) => {
-				component
-					.setIcon("rotate-ccw")
-					.setTooltip("Restore default template", { "placement": "left" })
-					.onClick(() => {
-						// eslint-disable-next-line no-alert
-						if (confirm('Restore default template?')) {
-							void (async () => {
-								try {
-									this.plugin.settings.filenameTemplate = DEFAULT_SETTINGS.filenameTemplate;
-									await this.plugin.saveSettings();
-									const input = activeDocument.querySelector<HTMLInputElement>('.hn-filename-template-setting .setting-item-control input[type="text"]');
-									if (input) input.value = DEFAULT_SETTINGS.filenameTemplate;
-								} catch (error) {
-									console.error('Failed to restore default template:', error);
-									showNotice('Failed to restore default template', 4000, 'error');
-								}
-							})();
-						}
-					});
-				component.extraSettingsEl.setAttribute('tabindex', '0');
-				component.extraSettingsEl.setAttribute('aria-label', 'Restore default template');
-			})
-			.descEl.appendChild(createFragment((frag) => {
-				frag.appendChild(activeDocument.createElement("br"));
-				frag.appendChild(activeDocument.createElement("br"));
-				frag.appendText("Available template variables:");
+				}));
 
-				const templateHelp = containerEl.createEl('div', { cls: 'template-help' });
-				const templateVars = [
-					{ name: '{{title}}', desc: 'The Hacker News post title' },
-					{ name: '{{post-id}}', desc: 'The Hacker News post ID' },
-					{ name: '{{date}}', desc: 'The current date (YYYY-MM-DD format)' },
-					{ name: '{{source}}', desc: 'The source URL or "Hacker News"' },
-					{ name: '{{time}}', desc: 'The current time (HH-MM-SS format)' },
-					{ name: '{{datetime}}', desc: 'The current date and time (YYYY-MM-DD-HH-MM-SS format)' }
-				];
+		filenameSetting.descEl.appendChild(createFragment((frag) => {
+			frag.createEl('br');
+			frag.createEl('br');
+			frag.appendText("Available template variables:");
 
-				const list = templateHelp.createEl('div');
-				templateVars.forEach(v => {
-					const item = list.createEl('p', { cls: 'hn-comments-template-vars' });
-					item.createEl('code', { text: v.name });
-					item.createSpan({ text: ` - ${v.desc}` });
-				});
-			}));
+			const templateVars = [
+				{ name: '{{title}}', desc: 'The Hacker News post title' },
+				{ name: '{{post-id}}', desc: 'The Hacker News post ID' },
+				{ name: '{{date}}', desc: 'The current date (YYYY-MM-DD format)' },
+				{ name: '{{source}}', desc: 'The source URL or "Hacker News"' },
+				{ name: '{{time}}', desc: 'The current time (HH-MM-SS format)' },
+				{ name: '{{datetime}}', desc: 'The current date and time (YYYY-MM-DD-HH-MM-SS format)' }
+			];
 
-			const restoreButtons: NodeListOf<HTMLElement> = containerEl.querySelectorAll(".extra-setting-button");
-			restoreButtons.forEach((element: HTMLElement) => {
-				element.addEventListener('keydown', (evt: KeyboardEvent) => {
-					const keyDown = evt.key;
-					if (keyDown === 'Enter' || (['Spacebar', ' '].indexOf(keyDown) >= 0)) {
-						evt.preventDefault();
-						(evt.target as HTMLElement).click();
-					}
-				});
+			templateVars.forEach(v => {
+				const item = frag.createEl('p', { cls: 'hn-comments-template-vars' });
+				item.createEl('code', { text: v.name });
+				item.createSpan({ text: ` - ${v.desc}` });
 			});
-
+		}));
 	}
 }
