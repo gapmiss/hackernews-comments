@@ -1,4 +1,17 @@
-import { type App, moment, Notice, requestUrl } from "obsidian";
+import { moment, Notice, requestUrl } from "obsidian";
+
+interface HNApiItem {
+    id: number;
+    type: string;
+    by?: string;
+    time?: number;
+    text?: string;
+    url?: string;
+    title?: string;
+    kids?: number[];
+    deleted?: boolean;
+    dead?: boolean;
+}
 import HackerNewsCommentsPlugin from "./main";
 import { DEFAULT_SETTINGS } from "./settings";
 
@@ -60,7 +73,7 @@ export class HNScraper {
                     };
                 }
             } catch (apiError) {
-                console.log('Hacker News API method failed, falling back to HTML scraping:', apiError);
+                console.debug('Hacker News API method failed, falling back to HTML scraping:', apiError);
             }
 
             // Fallback: Fetch and parse HTML directly using Obsidian's requestUrl
@@ -80,7 +93,8 @@ export class HNScraper {
                 };
             } catch (htmlError) {
                 messageEl.hide();
-                throw new Error(`Failed to fetch Hacker News page: ${htmlError.message}`);
+                const errorMessage = htmlError instanceof Error ? htmlError.message : 'Unknown error';
+                throw new Error(`Failed to fetch Hacker News page: ${errorMessage}`);
             }
         } catch (error) {
             console.error('Error scraping Hacker News comments:', error);
@@ -97,22 +111,22 @@ export class HNScraper {
             throw new Error(`Hacker News API request failed with status: ${response.status}`);
         }
 
-        const item = response.json;
-        
+        const item = response.json as HNApiItem;
+
         // Extract the original URL if available
-        const originalUrl = item.url || undefined;
-        
+        const originalUrl = item.url ?? undefined;
+
         // Extract the title if available
-        const title = item.title || undefined;
-        
-        if (!item || !item.kids || item.kids.length === 0) {
+        const title = item.title ?? undefined;
+
+        if (!item.kids || item.kids.length === 0) {
             return { comments: [], originalUrl, title };
         }
-        
+
         // Fetch all comments recursively
         const rootComments: HNComment[] = [];
         await this.fetchCommentsRecursively(item.kids, rootComments, 0);
-        
+
         return { comments: rootComments, originalUrl, title };
     }
     
@@ -129,17 +143,17 @@ export class HNScraper {
 
                 if (response.status !== 200) continue;
 
-                const commentData = response.json;
-                
+                const commentData = response.json as HNApiItem;
+
                 // Skip deleted or dead comments
-                if (!commentData || commentData.deleted || commentData.dead) continue;
-                
-                const date = moment.unix(commentData.time);
+                if (commentData.deleted || commentData.dead) continue;
+
+                const date = moment.unix(commentData.time ?? 0);
 
                 const comment: HNComment = {
                     id: `comment_${commentId}`,
-                    author: commentData.by || 'Anonymous',
-                    text: commentData.text || '',
+                    author: commentData.by ?? 'Anonymous',
+                    text: commentData.text ?? '',
                     // time: this.formatTime(commentData.time),
                     // time: date.format("YYYY-MM-DD, hh:mm:ss"),
                     time: date.format(this.plugin.settings.dateFormat ? this.plugin.settings.dateFormat : DEFAULT_SETTINGS.dateFormat),
@@ -151,11 +165,11 @@ export class HNScraper {
                 parentArray.push(comment);
                 
                 // Fetch child comments if any
-                if (commentData.kids && commentData.kids.length > 0) {
+                if (commentData.kids?.length) {
                     await this.fetchCommentsRecursively(
-                        commentData.kids, 
-                        comment.children, 
-                        level + 1, 
+                        commentData.kids,
+                        comment.children,
+                        level + 1,
                         comment.id
                     );
                 }

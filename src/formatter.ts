@@ -144,7 +144,7 @@ export class CommentFormatter {
                     case 'p':
                         result += '\n\n' + this.domToMarkdown(element);
                         break;
-                    case 'a':
+                    case 'a': {
                         const href = element.getAttribute('href') || '';
                         const linkText = element.textContent || '';
                         // Security: Validate URL scheme to prevent javascript: and data: URLs
@@ -154,10 +154,12 @@ export class CommentFormatter {
                             result += linkText; // Strip unsafe links
                         }
                         break;
-                    case 'pre':
+                    }
+                    case 'pre': {
                         const codeContent = element.textContent || '';
                         result += '```\n' + codeContent + '\n```';
                         break;
+                    }
                     case 'code':
                         // Check if it's inside a <pre> tag to avoid double wrapping
                         if (element.parentElement?.tagName.toLowerCase() !== 'pre') {

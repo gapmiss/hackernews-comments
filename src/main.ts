@@ -1,13 +1,13 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, addIcon } from 'obsidian';
-import { HNScraper } from './scraper';
+import { App, Modal, Notice, Plugin, TFile, addIcon } from 'obsidian';
+import { HNScraper, HNPostInfo } from './scraper';
 import { CommentFormatter } from './formatter';
-import { HNCommentsSettings, DEFAULT_SETTINGS, HNCommentsSettingTab } from './settings';
+import { type HNCommentsSettings, DEFAULT_SETTINGS, HNCommentsSettingTab } from './settings';
 import { INDICATOR_SVG, showNotice, generateNoticeFragment } from "./utils";
 
 addIcon('indicator', INDICATOR_SVG);
 
 export default class HackerNewsCommentsPlugin extends Plugin {
-	settings: HNCommentsSettings;
+	settings!: HNCommentsSettings;
 
 	async onload() {
 		// console.log('Loading Hacker News Comments plugin');
@@ -20,7 +20,8 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 
 		// Add a ribbon icon
 		this.addRibbonIcon('message-square', 'Hacker News Comments', () => {
-			new HNURLModal(this.app, async (url) => {
+			new HNURLModal(this.app, (url) => {
+				void (async () => {
 				try {
 					// Create a persistent notice that will stay visible until the process completes
 					const fragment = generateNoticeFragment("Fetching Hacker News comments…", "loading");
@@ -53,21 +54,24 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 					
 					// Open the note automatically if the setting is enabled
 					if (this.settings.openNoteAutomatically && file) {
-						this.app.workspace.getLeaf().openFile(file);
+						void this.app.workspace.getLeaf().openFile(file);
 					}
 				} catch (error) {
 					console.error('Error processing Hacker News comments:', error);
-					showNotice(`Error: ${error.message || 'Failed to process Hacker News comments'}`, 10000, 'error');
+					const errorMessage = error instanceof Error ? error.message : 'Failed to process Hacker News comments';
+					showNotice(`Error: ${errorMessage}`, 10000, 'error');
 				}
+				})();
 			}).open();
 		});
 
 		// Add a command
 		this.addCommand({
-			id: 'open-hackernews-comments-modal',
-			name: 'Fetch Hacker News Comments',
+			id: 'fetch-comments',
+			name: 'Fetch comments',
 			callback: () => {
-				new HNURLModal(this.app, async (url) => {
+				new HNURLModal(this.app, (url) => {
+					void (async () => {
 					try {
 						// Create a persistent notice that will stay visible until the process completes
 						const fragment = generateNoticeFragment("Fetching Hacker News comments…", "loading");
@@ -97,20 +101,21 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 						
 						// Open the note automatically if the setting is enabled
 						if (this.settings.openNoteAutomatically && file) {
-							this.app.workspace.getLeaf().openFile(file);
+							void this.app.workspace.getLeaf().openFile(file);
 						}
 					} catch (error) {
 						console.error('Error processing Hacker News comments:', error);
-						// new Notice(`Error: ${error.message || 'Failed to process Hacker News comments'}`);
-						showNotice(`Error: ${error.message || 'Failed to process Hacker News comments'}`, 10000, 'error');
+						const errorMessage = error instanceof Error ? error.message : 'Failed to process Hacker News comments';
+						showNotice(`Error: ${errorMessage}`, 10000, 'error');
 					}
+					})();
 				}).open();
 			}
 		});
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<HNCommentsSettings>);
 	}
 
 	async saveSettings() {
@@ -121,7 +126,7 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 		// console.log('Unloading Hacker News Comments plugin');
 	}
 
-	private generateFileName(url: string, postInfo?: any): string {
+	private generateFileName(url: string, postInfo?: HNPostInfo): string {
 		// Extract the story ID from the URL
 		const match = url.match(/\/item\?id=(\d+)/);
 		const postId = match ? match[1] : 'unknown';
@@ -141,7 +146,7 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 			try {
 				const hostname = new URL(postInfo.originalUrl).hostname;
 				source = this.sanitizeFilename(hostname);
-			} catch (e) {
+			} catch {
 				// Invalid URL, fallback to Hacker News
 				source = 'Hacker News';
 			}

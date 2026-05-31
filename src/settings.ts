@@ -41,7 +41,7 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		let descMomentFormat = document.createDocumentFragment();
+		const descMomentFormat = activeDocument.createDocumentFragment();
 		descMomentFormat.append(
 			'Customize the date format for comment\'s timestamp. (default: YYYY-MM-DD, hh:mm:ss)',
 			descMomentFormat.createEl('br'),
@@ -70,16 +70,19 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 				component
 					.setIcon("rotate-ccw")
 					.setTooltip("Restore default format", { "placement": "left" })
-					.onClick(async () => {
+					.onClick(() => {
+						// eslint-disable-next-line no-alert
 						if (confirm('Restore default format?')) {
-							try {
-								this.plugin.settings.dateFormat = DEFAULT_SETTINGS.dateFormat;
-								await this.plugin.saveSettings();
-								let input = activeDocument.querySelector('.hn-timestamp-format-setting .setting-item-control input[type="text"]') as HTMLInputElement | null;
-								input!.value = DEFAULT_SETTINGS.dateFormat;
-							} catch (error) {
-								console.error(error);
-							}
+							void (async () => {
+								try {
+									this.plugin.settings.dateFormat = DEFAULT_SETTINGS.dateFormat;
+									await this.plugin.saveSettings();
+									const input = activeDocument.querySelector<HTMLInputElement>('.hn-timestamp-format-setting .setting-item-control input[type="text"]');
+									if (input) input.value = DEFAULT_SETTINGS.dateFormat;
+								} catch (error) {
+									console.error(error);
+								}
+							})();
 						}
 					})
 					.extraSettingsEl.setAttribute('tabindex', '0');
@@ -120,23 +123,26 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 				component
 					.setIcon("rotate-ccw")
 					.setTooltip("Restore default template", { "placement": "left" })
-					.onClick(async () => {
+					.onClick(() => {
+						// eslint-disable-next-line no-alert
 						if (confirm('Restore default template?')) {
-							try {
-								this.plugin.settings.filenameTemplate = DEFAULT_SETTINGS.filenameTemplate;
-								await this.plugin.saveSettings();
-								let input = activeDocument.querySelector('.hn-filename-template-setting .setting-item-control input[type="text"]') as HTMLInputElement | null;
-								input!.value = DEFAULT_SETTINGS.filenameTemplate;
-							} catch (error) {
-								console.error(error);
-							}
+							void (async () => {
+								try {
+									this.plugin.settings.filenameTemplate = DEFAULT_SETTINGS.filenameTemplate;
+									await this.plugin.saveSettings();
+									const input = activeDocument.querySelector<HTMLInputElement>('.hn-filename-template-setting .setting-item-control input[type="text"]');
+									if (input) input.value = DEFAULT_SETTINGS.filenameTemplate;
+								} catch (error) {
+									console.error(error);
+								}
+							})();
 						}
 					})
 					.extraSettingsEl.setAttribute('tabindex', '0');
 			})
 			.descEl.appendChild(createFragment((frag) => {
-				frag.appendChild(document.createElement("br"));
-				frag.appendChild(document.createElement("br"));
+				frag.appendChild(activeDocument.createElement("br"));
+				frag.appendChild(activeDocument.createElement("br"));
 				frag.appendText("Available template variables (click or tab/enter to copy to clipboard)");
 
 				// Add template variables documentation
@@ -164,8 +170,8 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 					tpl.setAttribute('data-tooltip-position', 'top');
 					tpl.setAttribute('tabindex', '0');
 					tpl.insertAdjacentElement("afterbegin", iconEl);
-					tpl.addEventListener("click", async () => {
-						await copyStringToClipboard(v.name, v.name);
+					tpl.addEventListener("click", () => {
+						void copyStringToClipboard(v.name, v.name);
 					});
 
 					tpl.addEventListener('keydown', (evt) => {
