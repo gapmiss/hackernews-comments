@@ -95,10 +95,9 @@ svg.indicator {
 }
 
 
-.setting-item-control:has(input[type="text"]) {
-  & input[type="text"] {
-    min-width: 33ch;
-  }
+.hn-timestamp-format-setting .setting-item-control input[type="text"],
+.hn-filename-template-setting .setting-item-control input[type="text"] {
+  min-width: 33ch;
 }
 
 .hn-timestamp-format-setting .extra-setting-button:focus,
