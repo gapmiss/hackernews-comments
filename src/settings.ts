@@ -1,6 +1,6 @@
-import { type App, Setting, setIcon, PluginSettingTab } from 'obsidian';
+import { type App, Setting, PluginSettingTab } from 'obsidian';
 import HackerNewsCommentsPlugin from 'src/main';
-import { copyStringToClipboard } from "./utils";
+import { showNotice } from "./utils";
 
 export interface HNCommentsSettings {
 	enhancedLinks: boolean;
@@ -80,12 +80,14 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 									const input = activeDocument.querySelector<HTMLInputElement>('.hn-timestamp-format-setting .setting-item-control input[type="text"]');
 									if (input) input.value = DEFAULT_SETTINGS.dateFormat;
 								} catch (error) {
-									console.error(error);
+									console.error('Failed to restore default format:', error);
+									showNotice('Failed to restore default format', 4000, 'error');
 								}
 							})();
 						}
-					})
-					.extraSettingsEl.setAttribute('tabindex', '0');
+					});
+				component.extraSettingsEl.setAttribute('tabindex', '0');
+				component.extraSettingsEl.setAttribute('aria-label', 'Restore default format');
 			});
 
 		new Setting(containerEl)
@@ -133,19 +135,20 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 									const input = activeDocument.querySelector<HTMLInputElement>('.hn-filename-template-setting .setting-item-control input[type="text"]');
 									if (input) input.value = DEFAULT_SETTINGS.filenameTemplate;
 								} catch (error) {
-									console.error(error);
+									console.error('Failed to restore default template:', error);
+									showNotice('Failed to restore default template', 4000, 'error');
 								}
 							})();
 						}
-					})
-					.extraSettingsEl.setAttribute('tabindex', '0');
+					});
+				component.extraSettingsEl.setAttribute('tabindex', '0');
+				component.extraSettingsEl.setAttribute('aria-label', 'Restore default template');
 			})
 			.descEl.appendChild(createFragment((frag) => {
 				frag.appendChild(activeDocument.createElement("br"));
 				frag.appendChild(activeDocument.createElement("br"));
-				frag.appendText("Available template variables (click or tab/enter to copy to clipboard)");
+				frag.appendText("Available template variables:");
 
-				// Add template variables documentation
 				const templateHelp = containerEl.createEl('div', { cls: 'template-help' });
 				const templateVars = [
 					{ name: '{{title}}', desc: 'The Hacker News post title' },
@@ -156,37 +159,15 @@ export class HNCommentsSettingTab extends PluginSettingTab {
 					{ name: '{{datetime}}', desc: 'The current date and time (YYYY-MM-DD-HH-MM-SS format)' }
 				];
 
-				const div = templateHelp.createEl('div');
+				const list = templateHelp.createEl('div');
 				templateVars.forEach(v => {
-					const li = div.createEl('p');
-					li.addClass('hn-comments-template-vars');
-
-					let iconEl = li.createSpan({ cls: 'copy-icon' });
-
-					iconEl.setAttr("style", "margin-right: .3em;");
-					setIcon(iconEl, "copy");
-
-					let tpl = li.createEl('span', { text: v.name, cls: "tpl", attr: { "aria-label": "Click to copy" } });
-					tpl.setAttribute('data-tooltip-position', 'top');
-					tpl.setAttribute('tabindex', '0');
-					tpl.insertAdjacentElement("afterbegin", iconEl);
-					tpl.addEventListener("click", () => {
-						void copyStringToClipboard(v.name, v.name);
-					});
-
-					tpl.addEventListener('keydown', (evt) => {
-						const keyDown = evt.key;
-						if (keyDown === 'Enter' || (['Spacebar', ' '].indexOf(keyDown) >= 0)) {
-							evt.preventDefault();
-							tpl.click();
-						}
-					});
-
-					li.createSpan({ text: ` - ${v.desc}` });
+					const item = list.createEl('p', { cls: 'hn-comments-template-vars' });
+					item.createEl('code', { text: v.name });
+					item.createSpan({ text: ` - ${v.desc}` });
 				});
 			}));
 
-			let restoreButtons: NodeListOf<HTMLElement> = containerEl.querySelectorAll(".extra-setting-button");
+			const restoreButtons: NodeListOf<HTMLElement> = containerEl.querySelectorAll(".extra-setting-button");
 			restoreButtons.forEach((element: HTMLElement) => {
 				element.addEventListener('keydown', (evt: KeyboardEvent) => {
 					const keyDown = evt.key;

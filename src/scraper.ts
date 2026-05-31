@@ -178,22 +178,6 @@ export class HNScraper {
             }
         }
     }
-    
-    private formatTime(timestamp: number): string {
-        if (!timestamp) return '';
-
-        const date = new Date(timestamp * 1000);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-
-        if (diffHours < 24) {
-            return `${diffHours} hours ago`;
-        } else {
-            const diffDays = Math.floor(diffHours / 24);
-            return `${diffDays} days ago`;
-        }
-    }
 
     private isValidHNUrl(url: string): boolean {
         // Check if the URL is a valid Hacker News item URL
@@ -221,7 +205,6 @@ export class HNScraper {
         
         // Parse each comment
         const allComments: HNComment[] = [];
-        const commentMap: Record<string, HNComment> = {};
         
         commentRows.forEach(row => {
             const id = row.id;
@@ -248,9 +231,6 @@ export class HNScraper {
                 level,
                 children: []
             };
-            
-            // Store in map for quick lookup
-            commentMap[id] = comment;
             
             // Add to the list of all comments
             allComments.push(comment);

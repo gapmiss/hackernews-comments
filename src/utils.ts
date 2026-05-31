@@ -5,63 +5,34 @@ export const INDICATOR_SVG: string = `<svg height="120" viewBox="0 0 135 140" xm
 export function generateNoticeFragment(message: string, type?: string): DocumentFragment {
 	const fragment = activeDocument.createDocumentFragment();
 
-	let wrapper = fragment.createDiv({
-		attr: {
-			style: `display: flex; gap: .75em;`,
-		}
-	});
+	const wrapper = fragment.createDiv({ cls: 'hn-notice-wrapper' });
 
 	if (type === 'error') {
-		const header = wrapper.createDiv({
-			attr: {
-				style: `color: var(--color-red);`,
-			},
-		});
+		const header = wrapper.createDiv({ cls: 'hn-notice-icon-error' });
 		setIcon(header, 'alert-triangle');
 	}
 
 	if (type === 'warning') {
-		const header = wrapper.createDiv({
-			attr: {
-				style: `color: var(--color-yellow);`,
-			},
-		});
+		const header = wrapper.createDiv({ cls: 'hn-notice-icon-warning' });
 		setIcon(header, 'alert-triangle');
 	}
 
 	if (type === 'success') {
-		const header = wrapper.createDiv({
-			attr: {
-				style: `color: var(--color-green);`,
-			},
-		});
+		const header = wrapper.createDiv({ cls: 'hn-notice-icon-success' });
 		setIcon(header, 'check-circle');
 	}
 
 	if (type === 'info') {
-		const header = wrapper.createDiv({
-			attr: {
-				style: `color: var(--color-blue);`,
-			},
-		});
+		const header = wrapper.createDiv({ cls: 'hn-notice-icon-info' });
 		setIcon(header, 'info');
 	}
 
 	if (type === 'loading') {
-		const header = wrapper.createDiv({
-			attr: {
-				cls: "indicator"
-			}
-		});
+		const header = wrapper.createDiv({ cls: 'indicator' });
 		setIcon(header, 'indicator');
 	}
 
-	wrapper.createDiv({
-		text: message,
-		attr: {
-			style: ``,
-		},
-	});
+	wrapper.createDiv({ text: message });
 
 	return fragment;
 }
@@ -71,13 +42,3 @@ export function showNotice(message: string, duration: number = 4000, type?: stri
 	new Notice(fragment, duration);
 }
 
-export async function copyStringToClipboard(text:string, topic:string|undefined=undefined) {
-  navigator.clipboard
-    .writeText(text)
-    .then(function () {
-      showNotice((topic !== undefined ? topic + " " : "Text ") + "copied to clipboard", 2500, 'success');
-    })
-    .catch(function (error) {
-      console.error('Failed to copy to clipboard: ', error)
-    })
-}

@@ -21,47 +21,7 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 		// Add a ribbon icon
 		this.addRibbonIcon('message-square', 'Hacker News Comments', () => {
 			new HNURLModal(this.app, (url) => {
-				void (async () => {
-				try {
-					// Create a persistent notice that will stay visible until the process completes
-					const fragment = generateNoticeFragment("Fetching Hacker News comments…", "loading");
-
-					const loadingNotice = new Notice(fragment, 0);
-
-					const scraper = new HNScraper(this);
-					const postInfo = await scraper.scrapeComments(url, loadingNotice);
-					
-					if (!postInfo.comments || postInfo.comments.length === 0) {
-						loadingNotice.hide();
-						// new Notice('No comments found or unable to parse the page.');
-						showNotice("Error: No comments found or unable to parse the page.", 10000, 'error');
-						return;
-					}
-					
-					const formatter = new CommentFormatter(this.settings);
-					const formattedContent = formatter.formatComments(postInfo, url);
-					
-					// Create a new note with the formatted comments
-					const fileName = this.generateFileName(url, postInfo);
-					const file = await this.createNote(fileName, formattedContent);
-					
-					// Hide the loading notice now that we're done
-					loadingNotice.hide();
-					
-					showNotice(`Created note: ${fileName}`, 5000, 'success');
-					
-					// new Notice(`Created note: ${fileName}`);
-					
-					// Open the note automatically if the setting is enabled
-					if (this.settings.openNoteAutomatically && file) {
-						void this.app.workspace.getLeaf().openFile(file);
-					}
-				} catch (error) {
-					console.error('Error processing Hacker News comments:', error);
-					const errorMessage = error instanceof Error ? error.message : 'Failed to process Hacker News comments';
-					showNotice(`Error: ${errorMessage}`, 10000, 'error');
-				}
-				})();
+				void this.handleFetchComments(url);
 			}).open();
 		});
 
@@ -71,44 +31,7 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 			name: 'Fetch comments',
 			callback: () => {
 				new HNURLModal(this.app, (url) => {
-					void (async () => {
-					try {
-						// Create a persistent notice that will stay visible until the process completes
-						const fragment = generateNoticeFragment("Fetching Hacker News comments…", "loading");
-
-						const loadingNotice = new Notice(fragment, 0);
-						
-						const scraper = new HNScraper(this);
-						const postInfo = await scraper.scrapeComments(url, loadingNotice);
-						
-						if (!postInfo.comments || postInfo.comments.length === 0) {
-							loadingNotice.hide();
-							showNotice("Error: No comments found or unable to parse the page.", 10000, 'error');
-							return;
-						}
-						
-						const formatter = new CommentFormatter(this.settings);
-						const formattedContent = formatter.formatComments(postInfo, url);
-						
-						// Create a new note with the formatted comments
-						const fileName = this.generateFileName(url, postInfo);
-						const file = await this.createNote(fileName, formattedContent);
-						
-						// Hide the loading notice now that we're done
-						loadingNotice.hide();
-						// new Notice(`Created note: ${fileName}`);
-						showNotice(`Created note: ${fileName}`, 5000, 'success');
-						
-						// Open the note automatically if the setting is enabled
-						if (this.settings.openNoteAutomatically && file) {
-							void this.app.workspace.getLeaf().openFile(file);
-						}
-					} catch (error) {
-						console.error('Error processing Hacker News comments:', error);
-						const errorMessage = error instanceof Error ? error.message : 'Failed to process Hacker News comments';
-						showNotice(`Error: ${errorMessage}`, 10000, 'error');
-					}
-					})();
+					void this.handleFetchComments(url);
 				}).open();
 			}
 		});
@@ -124,6 +47,39 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 
 	onunload() {
 		// console.log('Unloading Hacker News Comments plugin');
+	}
+
+	private async handleFetchComments(url: string): Promise<void> {
+		try {
+			const fragment = generateNoticeFragment("Fetching Hacker News comments…", "loading");
+			const loadingNotice = new Notice(fragment, 0);
+
+			const scraper = new HNScraper(this);
+			const postInfo = await scraper.scrapeComments(url, loadingNotice);
+
+			if (!postInfo.comments || postInfo.comments.length === 0) {
+				loadingNotice.hide();
+				showNotice("Error: No comments found or unable to parse the page.", 10000, 'error');
+				return;
+			}
+
+			const formatter = new CommentFormatter(this.settings);
+			const formattedContent = formatter.formatComments(postInfo, url);
+
+			const fileName = this.generateFileName(url, postInfo);
+			const file = await this.createNote(fileName, formattedContent);
+
+			loadingNotice.hide();
+			showNotice(`Created note: ${fileName}`, 5000, 'success');
+
+			if (this.settings.openNoteAutomatically && file) {
+				void this.app.workspace.getLeaf().openFile(file);
+			}
+		} catch (error) {
+			console.error('Error processing Hacker News comments:', error);
+			const errorMessage = error instanceof Error ? error.message : 'Failed to process Hacker News comments';
+			showNotice(`Error: ${errorMessage}`, 10000, 'error');
+		}
 	}
 
 	private generateFileName(url: string, postInfo?: HNPostInfo): string {
@@ -264,8 +220,12 @@ class HNURLModal extends Modal {
 	}
 
 	onOK() {
-		this.onSubmit(this.url);
+		if (!this.validateURL(this.url)) {
+			new Notice('Please enter a valid Hacker News URL');
+			return;
+		}
 		this.close();
+		this.onSubmit(this.url);
 	}
 	
 	private validateURL(url: string): boolean {
