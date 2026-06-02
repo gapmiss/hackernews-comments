@@ -11,6 +11,31 @@ An Obsidian plugin that fetches and saves Hacker News comments as Markdown notes
 - Optional enhanced links for usernames and timestamps
 - Automatic HTML-to-Markdown conversion
 
+## Installation
+
+[Install from community.obsidian.md](https://community.obsidian.md/plugins/hackernews-comments)
+
+From Obsidian's settings or preferences:
+
+1. Community Plugins > Browse
+2. Search for "Hacker News Comments"
+
+Manually:
+
+1. download the latest [release](https://github.com/gapmiss/hackernews-comments/releases/latest) archive
+2. uncompress the downloaded archive
+3. move the `hackernews-comments` folder to `/path/to/vault/.obsidian/plugins/` 
+4.  Settings > Community plugins > reload **Installed plugins**
+5.  enable plugin
+
+or:
+
+1.  download `main.js`, `manifest.json` & `styles.css` from the latest [release](https://github.com/gapmiss/hackernews-comments/releases/latest)
+2.  create a new folder `/path/to/vault/.obsidian/plugins/hackernews-comments`
+3.  move all 3 files to `/path/to/vault/.obsidian/plugins/hackernews-comments`
+4.  Settings > Community plugins > reload **Installed plugins**
+5.  enable plugin
+
 ## How to use
 
 1. Click the Hacker News icon in the ribbon or use the "Fetch Hacker News Comments" command
