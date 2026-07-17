@@ -53,6 +53,7 @@ export default class HackerNewsCommentsPlugin extends Plugin {
 		try {
 			const fragment = generateNoticeFragment("Fetching Hacker News comments…", "loading");
 			const loadingNotice = new Notice(fragment, 0);
+			loadingNotice.containerEl.addClass("is-loading");
 
 			const scraper = new HNScraper(this);
 			const postInfo = await scraper.scrapeComments(url, loadingNotice);

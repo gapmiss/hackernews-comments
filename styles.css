@@ -18,9 +18,9 @@
 }
 
 .hn-button-container button {
-  min-height: 44px;
-  min-width: 44px;
-  padding: var(--size-4-2) var(--size-4-3);
+  /* min-height: 44px; */
+  /* min-width: 44px; */
+  /* padding: var(--size-4-2) var(--size-4-3); */
   border-radius: var(--radius-s);
   background-color: var(--interactive-normal);
   color: var(--text-normal);

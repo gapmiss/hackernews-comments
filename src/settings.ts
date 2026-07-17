@@ -1,5 +1,5 @@
 import { type App, Setting, PluginSettingTab } from 'obsidian';
-import HackerNewsCommentsPlugin from 'src/main';
+import HackerNewsCommentsPlugin from './main';
 
 export interface HNCommentsSettings {
 	enhancedLinks: boolean;
