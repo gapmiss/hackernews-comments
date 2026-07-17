@@ -1,7 +1,7 @@
 {
 	"id": "hackernews-comments",
 	"name": "Hacker News Comments",
-	"version": "1.7.7",
+	"version": "1.7.8",
 	"minAppVersion": "1.13.0",
 	"description": "Scrape comments from Hacker News posts and create markdown notes with threaded comments.",
 	"author": "@gapmiss",
